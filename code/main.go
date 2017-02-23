@@ -95,6 +95,55 @@ func CreateContact(w http.ResponseWriter, req *http.Request) {
 	
 }
 
+func EditContact(w http.ResponseWriter, req *http.Request) {
+	params := mux.Vars(req)
+
+	id := params["id"]
+	name := req.PostFormValue("name")
+	phoneNum := req.PostFormValue("phoneNum")
+	address:= req.PostFormValue("address")
+
+	db, err := sql.Open("mysql", "root:123456@/contactDB")                             
+	checkErr(err)                                                                      
+	                                                                                   
+	query, err := db.Prepare("UPDATE user SET name=?, phoneNum=?, address=? WHERE id=?")
+	checkErr(err)                                                                      
+	                                                                                   
+	res, err := query.Exec(name,phoneNum,address,id)
+	checkErr(err)                                                                      
+	                                                                                   
+	if res != nil {                                                                    
+		fmt.Println("Success")                                                     
+	}                                                                                  
+	                                                                                   
+	db.Close()                                                                         
+
+}
+
+func DeleteContact(w http.ResponseWriter, req *http.Request) {
+	params := mux.Vars(req)
+
+	id := params["id"]
+
+	db, err := sql.Open("mysql", "root:123456@/contactDB")
+	checkErr(err)
+
+	query, err := db.Prepare("DELETE FROM user WHERE id=?")
+	checkErr(err)
+
+	res, err := query.Exec(id)
+	checkErr(err)
+
+	if res != nil {
+		fmt.Println("Success")
+	}                                                                                   
+
+	db.Close()
+}
+
+
+
+
 
 
 func main() {
@@ -103,6 +152,8 @@ func main() {
 	router.HandleFunc("/contacts", GetAllContacts).Methods("GET")
 	router.HandleFunc("/contacts/{id}", GetOneContact).Methods("GET")
 	router.HandleFunc("/contacts", CreateContact).Methods("POST")
+	router.HandleFunc("/contacts/{id}", EditContact).Methods("PUT")
+	router.HandleFunc("/contacts/{id}", DeleteContact).Methods("DELETE")
 	log.Fatal(http.ListenAndServe(":12345", router))
 
 

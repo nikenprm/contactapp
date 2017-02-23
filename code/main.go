@@ -44,8 +44,6 @@ func GetAllContacts(w http.ResponseWriter, req *http.Request) {
 func GetOneContact(w http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)
 
-	
-
 	db, err := sql.Open("mysql", "root:123456@/contactDB")
 	checkErr(err)
 
@@ -70,11 +68,41 @@ func GetOneContact(w http.ResponseWriter, req *http.Request) {
 }
 
 
+func CreateContact(w http.ResponseWriter, req *http.Request) {
+	name := req.PostFormValue("name")
+	phoneNum := req.PostFormValue("phoneNum")
+	address:= req.PostFormValue("address")
+
+	//fmt.Println(name)
+	//fmt.Println(phoneNum)
+	//fmt.Println(address)
+
+	db, err := sql.Open("mysql", "root:123456@/contactDB")
+	checkErr(err)
+
+	query, err := db.Prepare("INSERT INTO user(name, phoneNum, address) VALUES(?,?,?)")
+	checkErr(err)
+
+	res, err := query.Exec(name,phoneNum,address)
+	checkErr(err)
+
+	if res != nil {
+		fmt.Println("Success")
+	}
+
+	db.Close()
+	
+	
+}
+
+
+
 func main() {
 
 	router := mux.NewRouter()
 	router.HandleFunc("/contacts", GetAllContacts).Methods("GET")
 	router.HandleFunc("/contacts/{id}", GetOneContact).Methods("GET")
+	router.HandleFunc("/contacts", CreateContact).Methods("POST")
 	log.Fatal(http.ListenAndServe(":12345", router))
 
 

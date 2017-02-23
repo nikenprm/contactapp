@@ -13,7 +13,7 @@ import (
 )
 
 type Contact struct {
-	Id int `json:"id"`
+	Id string `json:"id"`
 	Name string `json:"name,"`
 	PhoneNum string `json:"phoneNum"`
 	Address string `json:"address"`
@@ -27,13 +27,13 @@ func GetAllContacts(w http.ResponseWriter, req *http.Request) {
 	checkErr(err)
 
 	for rows.Next() {
-		var id int
+		var id string
 		var name string
 		var phoneNum string
 		var address string
 		err = rows.Scan(&id, &name, &phoneNum, &address)
 		checkErr(err)
-		contact := &Contact{id, name, phoneNum, address})
+		contact := &Contact{id, name, phoneNum, address}
 		json.NewEncoder(w).Encode(contact)
 	}
 
@@ -41,11 +41,40 @@ func GetAllContacts(w http.ResponseWriter, req *http.Request) {
 
 }
 
+func GetOneContact(w http.ResponseWriter, req *http.Request) {
+	params := mux.Vars(req)
+
+	
+
+	db, err := sql.Open("mysql", "root:123456@/contactDB")
+	checkErr(err)
+
+	rows, err := db.Query("SELECT * FROM user")
+	checkErr(err)
+
+	for rows.Next() {
+		var id string
+		var name string
+		var phoneNum string
+		var address string
+
+		err = rows.Scan(&id, &name, &phoneNum, &address)
+		checkErr(err)
+		if id == params["id"]   {
+			 contact := &Contact{id, name, phoneNum, address}
+		         json.NewEncoder(w).Encode(contact)
+		}
+	}
+
+	db.Close()
+}
+
 
 func main() {
 
 	router := mux.NewRouter()
 	router.HandleFunc("/contacts", GetAllContacts).Methods("GET")
+	router.HandleFunc("/contacts/{id}", GetOneContact).Methods("GET")
 	log.Fatal(http.ListenAndServe(":12345", router))
 
 

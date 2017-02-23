@@ -10,6 +10,8 @@ import (
 	"github.com/gorilla/mux"
 	"encoding/json"
 	"log"
+	"strconv"
+//	"errors"
 )
 
 type Contact struct {
@@ -17,6 +19,11 @@ type Contact struct {
 	Name string `json:"name,"`
 	PhoneNum string `json:"phoneNum"`
 	Address string `json:"address"`
+}
+
+type ErrorMessage struct {
+    Err string
+    Code int
 }
 
 func GetAllContacts(w http.ResponseWriter, req *http.Request) {
@@ -59,6 +66,7 @@ func GetOneContact(w http.ResponseWriter, req *http.Request) {
 		err = rows.Scan(&id, &name, &phoneNum, &address)
 		checkErr(err)
 		if id == params["id"]   {
+
 			 contact := &Contact{id, name, phoneNum, address}
 		         json.NewEncoder(w).Encode(contact)
 		}
@@ -80,14 +88,16 @@ func CreateContact(w http.ResponseWriter, req *http.Request) {
 	db, err := sql.Open("mysql", "root:123456@/contactDB")
 	checkErr(err)
 
-	query, err := db.Prepare("INSERT INTO user(name, phoneNum, address) VALUES(?,?,?)")
-	checkErr(err)
+	if _, err := strconv.Atoi(name); err != nil {
+		  sendErrorMessage(w, "Cannot contain number")
+	} else {
 
-	res, err := query.Exec(name,phoneNum,address)
-	checkErr(err)
+		query, err := db.Prepare("INSERT INTO user(name, phoneNum, address) VALUES(?,?,?)")
+		checkErr(err)
 
-	if res != nil {
-		fmt.Println("Success")
+		_, error := query.Exec(name, phoneNum, address)
+		checkErr(error)
+
 	}
 
 	db.Close()
@@ -123,28 +133,41 @@ func EditContact(w http.ResponseWriter, req *http.Request) {
 func DeleteContact(w http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)
 
-	id := params["id"]
+	p := params["id"]
+
+	id, err := strconv.Atoi(p)
+	var maxID int
 
 	db, err := sql.Open("mysql", "root:123456@/contactDB")
 	checkErr(err)
 
-	query, err := db.Prepare("DELETE FROM user WHERE id=?")
+	row, err := db.Query("SELECT MAX(id) FROM user")
 	checkErr(err)
 
-	res, err := query.Exec(id)
-	checkErr(err)
+	err = row.Scan(&maxID)
 
-	if res != nil {
-		fmt.Println("Success")
-	}                                                                                   
+	if id<=maxID {
+		query, err := db.Prepare("DELETE FROM user WHERE id=?")
+		checkErr(err)
+
+		_, error := query.Exec(id)
+		checkErr(error)
+
+
+	} else {
+
+		//errortext := ErrorMessage{"There is no user with that ID", 400}
+		//json.NewEncoder(w).Encode(errortext)
+		sendErrorMessage(w, "There is no user with that ID")
+		//w.WriteHeader(http.StatusBadRequest)
+	}
 
 	db.Close()
 }
 
-
-
-
-
+func sendErrorMessage(w http.ResponseWriter, message string) {
+	      http.Error(w, message, http.StatusBadRequest)
+}
 
 func main() {
 

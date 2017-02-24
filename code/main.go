@@ -11,27 +11,25 @@ import (
 	"encoding/json"
 	"log"
 	"strconv"
+	"./contact"
 //	"errors"
 )
-
-type Contact struct {
-	Id string `json:"id"`
-	Name string `json:"name,"`
-	PhoneNum string `json:"phoneNum"`
-	Address string `json:"address"`
-}
 
 type ErrorMessage struct {
     Err string
     Code int
 }
 
+var db *sql.DB
+
+
 func GetAllContacts(w http.ResponseWriter, req *http.Request) {
-	db, err := sql.Open("mysql", "root:123456@/contactDB")
-	checkErr(err)
+
 
 	rows, err := db.Query("SELECT * FROM user")
 	checkErr(err)
+
+	defer rows.Close()
 
 	for rows.Next() {
 		var id string
@@ -40,53 +38,54 @@ func GetAllContacts(w http.ResponseWriter, req *http.Request) {
 		var address string
 		err = rows.Scan(&id, &name, &phoneNum, &address)
 		checkErr(err)
-		contact := &Contact{id, name, phoneNum, address}
+		contact := &contact.Contact{id, name, phoneNum, address}
 		json.NewEncoder(w).Encode(contact)
 	}
 
-	db.Close()
 
 }
 
 func GetOneContact(w http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)
+	p := params["id"]
 
-	db, err := sql.Open("mysql", "root:123456@/contactDB")
-	checkErr(err)
+	id, _ := strconv.Atoi(p)
 
-	rows, err := db.Query("SELECT * FROM user")
-	checkErr(err)
+	maxID := getMaxID()
 
-	for rows.Next() {
-		var id string
-		var name string
-		var phoneNum string
-		var address string
 
-		err = rows.Scan(&id, &name, &phoneNum, &address)
+	if id<=maxID {
+
+		rows, err := db.Query("SELECT * FROM user WHERE id = ?", id)
 		checkErr(err)
-		if id == params["id"]   {
 
-			 contact := &Contact{id, name, phoneNum, address}
-		         json.NewEncoder(w).Encode(contact)
+		defer rows.Close()
+
+		for rows.Next() {
+			var id string
+			var name string
+			var phoneNum string
+			var address string
+
+			err = rows.Scan(&id, &name, &phoneNum, &address)
+			checkErr(err)
+			contact := &contact.Contact{id, name, phoneNum, address}
+			json.NewEncoder(w).Encode(contact)
+
 		}
+	} else {
+
+		sendErrorMessage(w, "There is no user with that ID")
 	}
 
-	db.Close()
-}
 
+}
 
 func CreateContact(w http.ResponseWriter, req *http.Request) {
 	name := req.PostFormValue("name")
 	phoneNum := req.PostFormValue("phoneNum")
 	address:= req.PostFormValue("address")
 
-	//fmt.Println(name)
-	//fmt.Println(phoneNum)
-	//fmt.Println(address)
-
-	db, err := sql.Open("mysql", "root:123456@/contactDB")
-	checkErr(err)
 
 	if _, err := strconv.Atoi(name); err != nil {
 		  sendErrorMessage(w, "Cannot contain number")
@@ -99,9 +98,6 @@ func CreateContact(w http.ResponseWriter, req *http.Request) {
 		checkErr(error)
 
 	}
-
-	db.Close()
-	
 	
 }
 
@@ -113,9 +109,6 @@ func EditContact(w http.ResponseWriter, req *http.Request) {
 	phoneNum := req.PostFormValue("phoneNum")
 	address:= req.PostFormValue("address")
 
-	db, err := sql.Open("mysql", "root:123456@/contactDB")                             
-	checkErr(err)                                                                      
-	                                                                                   
 	query, err := db.Prepare("UPDATE user SET name=?, phoneNum=?, address=? WHERE id=?")
 	checkErr(err)                                                                      
 	                                                                                   
@@ -125,8 +118,7 @@ func EditContact(w http.ResponseWriter, req *http.Request) {
 	if res != nil {                                                                    
 		fmt.Println("Success")                                                     
 	}                                                                                  
-	                                                                                   
-	db.Close()                                                                         
+
 
 }
 
@@ -135,16 +127,11 @@ func DeleteContact(w http.ResponseWriter, req *http.Request) {
 
 	p := params["id"]
 
-	id, err := strconv.Atoi(p)
-	var maxID int
+	id, _ := strconv.Atoi(p)
+	maxID := getMaxID()
 
-	db, err := sql.Open("mysql", "root:123456@/contactDB")
-	checkErr(err)
-
-	row, err := db.Query("SELECT MAX(id) FROM user")
-	checkErr(err)
-
-	err = row.Scan(&maxID)
+	fmt.Println("Max ID: ", maxID)
+	fmt.Println("ID: ", id)
 
 	if id<=maxID {
 		query, err := db.Prepare("DELETE FROM user WHERE id=?")
@@ -162,14 +149,15 @@ func DeleteContact(w http.ResponseWriter, req *http.Request) {
 		//w.WriteHeader(http.StatusBadRequest)
 	}
 
-	db.Close()
 }
 
-func sendErrorMessage(w http.ResponseWriter, message string) {
-	      http.Error(w, message, http.StatusBadRequest)
-}
 
 func main() {
+
+	var err error
+
+	db, err = sql.Open("mysql", "root:123456@/contactDB")
+	checkErr(err)
 
 	router := mux.NewRouter()
 	router.HandleFunc("/contacts", GetAllContacts).Methods("GET")
@@ -179,6 +167,8 @@ func main() {
 	router.HandleFunc("/contacts/{id}", DeleteContact).Methods("DELETE")
 	log.Fatal(http.ListenAndServe(":12345", router))
 
+	defer db.Close()
+
 
 }
 
@@ -186,4 +176,29 @@ func checkErr(err error) {
 	if err != nil {
 		fmt.Println(err)
 	}
+}
+
+
+func getMaxID() int {
+	var maxID int
+
+	rows, err := db.Query("SELECT MAX(id) FROM user")
+	checkErr(err)
+
+	defer rows.Close()
+	for rows.Next() {
+		err := rows.Scan(&maxID)
+		checkErr(err)
+	}
+
+	return maxID
+
+}
+
+func sendErrorMessage(w http.ResponseWriter, message string) {
+	http.Error(w, message, http.StatusBadRequest)
+}
+
+func (e ErrorMessage) sendErrorMessage(w http.ResponseWriter) {
+	http.Error(w, e.Err, e.Code)
 }

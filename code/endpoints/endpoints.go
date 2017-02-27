@@ -85,10 +85,8 @@ func DeleteContact(w http.ResponseWriter, req *http.Request) {
 
 	if isValid != true {
 
-	//errortext := ErrorMessage{"There is no user with that ID", 400}
-	//json.NewEncoder(w).Encode(errortext)
-	sendErrorMessage(w, "There is no user with that ID")
-	//w.WriteHeader(http.StatusBadRequest)
+		sendErrorMessage(w, "There is no user with that ID")
+
 	}
 
 }

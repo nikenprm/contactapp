@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"strconv"
+
 )
 
 type Contact struct {
@@ -15,6 +16,22 @@ type Contact struct {
 
 var db *sql.DB
 
+var (
+	getUserFromIDSQL = map[string]string{
+	"mysql":    "SELECT * FROM user WHERE id = ?",
+	"postgres": "SELECT id, user_id, profile FROM users WHERE id = $1 AND deleted_at IS NULL LIMIT 1",
+	}
+	getUserFromIDStmt     *sql.Stmt
+)
+
+func PrepareStatements(err error) {
+	getUserFromIDStmt, err = db.Prepare(getUserFromIDSQL["mysql"])
+	if err != nil {
+		return
+	}
+
+}
+
 func connectDB() {
 	var err error
 	db, err = sql.Open("mysql", "root:123456@/contactDB")
@@ -23,6 +40,7 @@ func connectDB() {
 }
 
 func GetContactByID (userId int) Contact {
+
 
 	var id string
 	var name string
@@ -33,10 +51,17 @@ func GetContactByID (userId int) Contact {
 	maxID := getMaxID()
 	fmt.Println(userId, maxID)
 
+	//getUserFromIDStmt, err := db.Prepare(getUserFromIDSQL["mysql"])
+	checkErr(err)
+
 	if userId <= maxID {
 
-		rows, err := db.Query("SELECT * FROM user WHERE id = ?", userId)
+		//err := getUserFromIDStmt.QueryRow(userId).Scan(&id, &name, &phoneNum, &address)
+
+		rows, err := getUserFromIDStmt.Query(userId)
 		checkErr(err)
+
+		fmt.Println("here")
 
 		defer rows.Close()
 
@@ -136,14 +161,13 @@ func Delete (p string) bool{
 
 	}
 
-
 }
 
 
 
 func checkErr(err error) {
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("error!!!!",err)
 	}
 }
 

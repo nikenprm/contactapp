@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 	"strconv"
+	_ "github.com/lib/pq"
+//	"../config"
 
 )
 
@@ -17,75 +19,118 @@ type Contact struct {
 var db *sql.DB
 
 var (
-	getUserFromIDSQL = map[string]string{
+	getContactFromIDSQL = map[string]string{
 	"mysql":    "SELECT * FROM user WHERE id = ?",
-	"postgres": "SELECT id, user_id, profile FROM users WHERE id = $1 AND deleted_at IS NULL LIMIT 1",
+	"postgres": "SELECT * FROM contactinfo WHERE id= $1",
 	}
-	getUserFromIDStmt     *sql.Stmt
+
+	createContactSQL = map[string]string{
+		"mysql": "INSERT INTO user(name, phoneNum, address) VALUES(?,?,?)",
+		"postgres": "INSERT INTO contactinfo(name, phoneNum, address) VALUES($1,$2,$3)",
+	}
+
+	updateContactSQL = map[string]string{
+		"mysql": "UPDATE user SET name=?, phoneNum=?, address=? WHERE id=?",
+		"postgres": "UPDATE contactinfo SET name=$1, phoneNum=$2, address=$3 WHERE id=$4",
+	}
+
+	deleteContactSQL = map[string]string{
+		"mysql": "DELETE FROM user WHERE id=?",
+		"postgres": "DELETE FROM contactinfo WHERE id=$1",
+	}
+
+	getMaxIDSQL = map[string]string{
+		"mysql": "SELECT MAX(id) FROM user",
+		"postgres" : "SELECT MAX(id) FROM contactinfo",
+
+	}
+
+
+)
+
+var (
+	//database config.DB
+	getContactFromIDStmt     *sql.Stmt
+	createContactStmt 	 *sql.Stmt
+	updateContactStmt        *sql.Stmt
+	deleteContactStmt	 *sql.Stmt
+	getMaxIDStmt		 *sql.Stmt
+)
+
+const (
+	dbType = "postgres"
 )
 
 func PrepareStatements(err error) {
-	getUserFromIDStmt, err = db.Prepare(getUserFromIDSQL["mysql"])
+	getContactFromIDStmt, err = db.Prepare(getContactFromIDSQL[dbType])
 	if err != nil {
 		return
 	}
 
+	createContactStmt, err = db.Prepare(createContactSQL[dbType])
+	if err != nil {
+		return
+	}
+
+	updateContactStmt, err = db.Prepare(updateContactSQL[dbType])
+	if err != nil {
+		return
+	}
+
+	deleteContactStmt, err = db.Prepare(deleteContactSQL[dbType])
+	if err != nil {
+		return
+	}
 }
 
-func connectDB() {
-	var err error
-	db, err = sql.Open("mysql", "root:123456@/contactDB")
-	checkErr(err)
+func ConnectDB() {
 
+	var err error
+	//db, err = sql.Open("mysql", "root:123456@/contactDB")
+	db, err = sql.Open("postgres", "user=postgres dbname=contactappDB sslmode=disable")
+	err = db.Ping()
+	if err != nil {
+		panic(err)
+	}
+	checkErr(err)
+	PrepareStatements(err)
+
+}
+
+func CloseDB() {
+
+	db.Close()
 }
 
 func GetContactByID (userId int) Contact {
-
 
 	var id string
 	var name string
 	var phoneNum string
 	var address string
-	connectDB()
 
 	maxID := getMaxID()
 	fmt.Println(userId, maxID)
 
-	//getUserFromIDStmt, err := db.Prepare(getUserFromIDSQL["mysql"])
-	checkErr(err)
-
 	if userId <= maxID {
-
-		//err := getUserFromIDStmt.QueryRow(userId).Scan(&id, &name, &phoneNum, &address)
-
-		rows, err := getUserFromIDStmt.Query(userId)
+		rows, err := getContactFromIDStmt.Query(userId)
 		checkErr(err)
-
-		fmt.Println("here")
 
 		defer rows.Close()
 
-
 		for rows.Next() {
-
-			fmt.Println("im here")
 			err = rows.Scan(&id, &name, &phoneNum, &address)
 			checkErr(err)
-
 		}
-
 	}
 	contact := Contact{id, name, phoneNum, address}
-	fmt.Println("Model: ",contact.Id, contact.Name)
 	return contact
-
 }
 
 func GetAllContacts () []Contact {
 
 	var contacts []Contact
 
-	connectDB()
 	maxID := getMaxID()
 
 	for i := 1;i <= maxID; i++ {
@@ -99,17 +144,12 @@ func GetAllContacts () []Contact {
 }
 
 func CreateContact (name, phoneNum, address string) {
-	connectDB()
 
-	query, err := db.Prepare("INSERT INTO user(name, phoneNum, address) VALUES(?,?,?)")
-	checkErr(err)
-
-	_, error := query.Exec(name, phoneNum, address)
+	_, error := createContactStmt.Exec(name, phoneNum, address)
 	checkErr(error)
 }
 
-func Update (id, name, phoneNum, address string) {
-	connectDB()
+func UpdateContact (id, name, phoneNum, address string) {
 
 	userID, err := strconv.Atoi(id)
 	checkErr(err)
@@ -128,10 +168,7 @@ func Update (id, name, phoneNum, address string) {
 		address = contact.Address
 	}
 
-	query, err := db.Prepare("UPDATE user SET name=?, phoneNum=?, address=? WHERE id=?")
-	checkErr(err)
-
-	res, err := query.Exec(name,phoneNum,address,id)
+	res, err := updateContactStmt.Exec(name,phoneNum,address,id)
 	checkErr(err)
 
 	if res != nil {
@@ -140,20 +177,13 @@ func Update (id, name, phoneNum, address string) {
 
 }
 
-func Delete (p string) bool{
-	connectDB()
+func DeleteContact (p string) bool{
 
 	id, _ := strconv.Atoi(p)
 	maxID := getMaxID()
 
-	fmt.Println("Max ID: ", maxID)
-	fmt.Println("ID: ", id)
-
 	if id<=maxID {
-		query, err := db.Prepare("DELETE FROM user WHERE id=?")
-		checkErr(err)
-
-		_, error := query.Exec(id)
+		_, error := deleteContactStmt.Exec(id)
 		checkErr(error)
 		return true
 	} else {
@@ -162,8 +192,6 @@ func Delete (p string) bool{
 	}
 
 }
-
-
 
 func checkErr(err error) {
 	if err != nil {
@@ -174,7 +202,7 @@ func checkErr(err error) {
 func getMaxID() int {
 	var maxID int
 
-	err := db.QueryRow("SELECT MAX(id) FROM user").Scan(&maxID)
+	err := db.QueryRow(getMaxIDSQL[dbType]).Scan(&maxID)
 	checkErr(err)
 
 	return maxID

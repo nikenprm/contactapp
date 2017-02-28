@@ -12,8 +12,10 @@ type DB struct {
 
 }
 
+var db *DB
 
-func (db *DB) setMySQLDB() {
+
+func SetMySQLDB() {
 
 	db.Type = "mysql"
 	db.Host = "localhost"

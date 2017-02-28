@@ -8,10 +8,15 @@ import (
 	"net/http"
 
 	"./endpoints"
+	"./contact"
+//	"./config"
 
 )
 
 func main() {
+
+	contact.ConnectDB()
+//	config.SetMySQLDB()
 
 	router := mux.NewRouter()
 	router.HandleFunc("/contacts", endpoints.GetAllContacts).Methods("GET")
@@ -20,6 +25,8 @@ func main() {
 	router.HandleFunc("/contacts/{id}", endpoints.EditContact).Methods("PUT")
 	router.HandleFunc("/contacts/{id}", endpoints.DeleteContact).Methods("DELETE")
 	log.Fatal(http.ListenAndServe(":12345", router))
+
+	defer contact.CloseDB()
 
 }
 

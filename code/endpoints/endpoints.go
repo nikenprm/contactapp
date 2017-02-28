@@ -41,8 +41,6 @@ func GetAllContacts(w http.ResponseWriter, req *http.Request) {
 	for _,c := range contacts {
 		json.NewEncoder(w).Encode(c)
 	}
-
-
 }
 
 func CreateNewContact(w http.ResponseWriter, req *http.Request) {
@@ -60,7 +58,6 @@ func CreateNewContact(w http.ResponseWriter, req *http.Request) {
 		fmt.Println("name:",name)
 		sendErrorMessage(w, "Cannot contain number")
 	}
-
 }
 
 func EditContact(w http.ResponseWriter, req *http.Request) {
@@ -71,9 +68,7 @@ func EditContact(w http.ResponseWriter, req *http.Request) {
 	phoneNum := req.PostFormValue("phoneNum")
 	address:= req.PostFormValue("address")
 
-	contact.Update(id,name,phoneNum,address)
-
-
+	contact.UpdateContact(id,name,phoneNum,address)
 }
 
 func DeleteContact(w http.ResponseWriter, req *http.Request) {
@@ -81,7 +76,7 @@ func DeleteContact(w http.ResponseWriter, req *http.Request) {
 
 	p := params["id"]
 
-	isValid := contact.Delete(p)
+	isValid := contact.DeleteContact(p)
 
 	if isValid != true {
 
@@ -90,7 +85,6 @@ func DeleteContact(w http.ResponseWriter, req *http.Request) {
 	}
 
 }
-
 
 
 func sendErrorMessage(w http.ResponseWriter, message string) {

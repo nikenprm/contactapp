@@ -10,10 +10,10 @@ import (
 )
 
 type Contact struct {
-	Id string `json:"id, omitempty"`
-	Name string `json:"name, omitempty"`
-	PhoneNum string `json:"phoneNum, omitempty"`
-	Address string `json:"address, omitempty"`
+	Id string `json:"id"`
+	Name string `json:"name"`
+	PhoneNum string `json:"phoneNum"`
+	Address string `json:"address"`
 }
 
 var db *sql.DB
@@ -42,12 +42,10 @@ var (
 	getMaxIDSQL = map[string]string{
 		"mysql": "SELECT MAX(id) FROM user",
 		"postgres" : "SELECT MAX(id) FROM contactinfo",
-
 	}
 )
 
 var (
-	//database config.DB
 	getContactFromIDStmt     *sql.Stmt
 	createContactStmt 	 *sql.Stmt
 	updateContactStmt        *sql.Stmt
@@ -78,8 +76,6 @@ func PrepareStatements(err error) {
 }
 
 func ConnectDB() {
-
-
 	var err error
 	url, err := config.Config.DB.ConnectionString()
 	//db, err = sql.Open("mysql", "root:123456@/contactDB")
@@ -94,14 +90,12 @@ func ConnectDB() {
 }
 
 func CloseDB() {
-
 	fmt.Println("db is closed")
 
 	db.Close()
 }
 
 func GetContactByID (userId int) Contact {
-
 	var id string
 	var name string
 	var phoneNum string
@@ -126,29 +120,29 @@ func GetContactByID (userId int) Contact {
 }
 
 func GetAllContacts () []Contact {
-
 	var contacts []Contact
 
 	maxID := getMaxID()
 
 	for i := 1;i <= maxID; i++ {
 		contact := GetContactByID(i)
-		contacts = append(contacts, contact)
+
+		//if we do not use this then the row that has been deleted will also appear even though
+		//they have empty values
+		if contact.Id!= "" {
+			contacts = append(contacts, contact)
+		}
 
 	}
-
 	return contacts
-
 }
 
 func CreateContact (name, phoneNum, address string) {
-
 	_, error := createContactStmt.Exec(name, phoneNum, address)
 	checkErr(error)
 }
 
-func UpdateContact (id, name, phoneNum, address string) {
-
+func UpdateContact (id, name, phoneNum, address string){
 	userID, err := strconv.Atoi(id)
 	checkErr(err)
 
@@ -172,23 +166,20 @@ func UpdateContact (id, name, phoneNum, address string) {
 	if res != nil {
 		fmt.Println("Success")
 	}
-
 }
 
-func DeleteContact (p string) bool{
-
+func DeleteContact (p string) error{
+	var err error
 	id, _ := strconv.Atoi(p)
 	maxID := getMaxID()
 
 	if id<=maxID {
-		_, error := deleteContactStmt.Exec(id)
-		checkErr(error)
-		return true
+		_, err = deleteContactStmt.Exec(id)
+		checkErr(err)
+		return nil
 	} else {
-		return false
-
+		return err
 	}
-
 }
 
 func checkErr(err error) {

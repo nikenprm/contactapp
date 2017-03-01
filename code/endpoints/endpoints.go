@@ -10,7 +10,17 @@ import (
 	"../contact"
 	"fmt"
 	"regexp"
+	"strings"
 )
+
+type ContactCreationStruct struct {
+
+	Id string `json:"id"`
+	Name string `json:"name"`
+	PhoneNum string `json:"phoneNum"`
+	Address string `json:"address"`
+
+}
 
 func GetContactProfile(w http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)
@@ -27,7 +37,6 @@ func GetContactProfile(w http.ResponseWriter, req *http.Request) {
 
 	} else {
 
-
 		json.NewEncoder(w).Encode(contact)
 	}
 
@@ -43,21 +52,29 @@ func GetAllContacts(w http.ResponseWriter, req *http.Request) {
 }
 
 func CreateNewContact(w http.ResponseWriter, req *http.Request) {
-	name := req.PostFormValue("name")
-	phoneNum := req.PostFormValue("phoneNum")
-	address:= req.PostFormValue("address")
+	var contactStruct ContactCreationStruct
 
-	//decoder := json.NewDecoder(req.Body)
+	decoder := json.NewDecoder(req.Body)
 
+	if err := decoder.Decode(&contactStruct); err != nil {
+		sendErrorMessage(w, "Error decoding the input")
+		return
+	}
+
+	//used to check whether a string contains number or not, because value of name cannot contain number
 	var IsLetter = regexp.MustCompile(`^[a-zA-Z]+$`).MatchString
 
-	if IsLetter(name) {
-		contact.CreateContact(name,phoneNum,address)
+	//the function above will assume that whitespace is not letter
+	//so we have to first strip all whitespace to correctly check the variable
+	tempname := strings.Join(strings.Fields(contactStruct.Name),"")
+
+	if IsLetter(tempname) {
+		contact.CreateContact(contactStruct.Name,contactStruct.PhoneNum,contactStruct.Address)
 
 	} else {
 
-		fmt.Println("name:",name)
-		sendErrorMessage(w, "Cannot contain number")
+		fmt.Println("name:",contactStruct.Name)
+		sendErrorMessage(w, "Name cannot contain number")
 	}
 }
 
@@ -65,11 +82,27 @@ func EditContact(w http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)
 
 	id := params["id"]
-	name := req.PostFormValue("name")
-	phoneNum := req.PostFormValue("phoneNum")
-	address:= req.PostFormValue("address")
 
-	contact.UpdateContact(id,name,phoneNum,address)
+	var contactStruct ContactCreationStruct
+	contactStruct.Id = id
+
+
+	decoder := json.NewDecoder(req.Body)
+
+	if err := decoder.Decode(&contactStruct); err != nil {
+		sendErrorMessage(w, "Error decoding the input")
+		return
+	}
+
+	var IsLetter = regexp.MustCompile(`^[a-zA-Z]+$`).MatchString
+	tempname := strings.Join(strings.Fields(contactStruct.Name),"")
+
+	if IsLetter(tempname) {
+		contact.UpdateContact(contactStruct.Id, contactStruct.Name, contactStruct.PhoneNum, contactStruct.Address)
+	} else {
+
+		sendErrorMessage(w, "Name cannot contain number")
+	}
 }
 
 func DeleteContact(w http.ResponseWriter, req *http.Request) {
@@ -77,9 +110,9 @@ func DeleteContact(w http.ResponseWriter, req *http.Request) {
 
 	p := params["id"]
 
-	isValid := contact.DeleteContact(p)
+	error := contact.DeleteContact(p)
 
-	if isValid != true {
+	if error!=nil {
 
 		sendErrorMessage(w, "There is no user with that ID")
 

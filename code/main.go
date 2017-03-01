@@ -8,7 +8,7 @@ import (
 	"net/http"
 
 	"./endpoints"
-	"./contact"
+	"./repository"
 	"./config"
 
 	"fmt"
@@ -42,7 +42,7 @@ func executeServer() {
 		os.Exit(1)
 	}
 
-	contact.ConnectDB()
+	repository.ConnectDB()
 	router := mux.NewRouter()
 	router.HandleFunc("/contacts", endpoints.GetAllContacts).Methods("GET")
 	router.HandleFunc("/contacts/{id}", endpoints.GetContactProfile).Methods("GET")
@@ -53,7 +53,7 @@ func executeServer() {
 
 	fmt.Println("HTTP is listening on port 12345")
 
-	defer contact.CloseDB()
+	defer repository.CloseDB()
 }
 
 

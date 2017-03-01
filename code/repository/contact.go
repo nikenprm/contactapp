@@ -1,4 +1,4 @@
-package contact
+package repository
 
 import (
 	"database/sql"
@@ -15,8 +15,6 @@ type Contact struct {
 	PhoneNum string `json:"phoneNum"`
 	Address string `json:"address"`
 }
-
-var db *sql.DB
 
 var (
 	getContactFromIDSQL = map[string]string{
@@ -75,25 +73,6 @@ func PrepareStatements(err error) {
 	}
 }
 
-func ConnectDB() {
-	var err error
-	url, err := config.Config.DB.ConnectionString()
-	//db, err = sql.Open("mysql", "root:123456@/contactDB")
-	db, err = sql.Open(config.Config.DB.Type, url)
-	err = db.Ping()
-	if err != nil {
-		panic(err)
-	}
-	checkErr(err)
-	PrepareStatements(err)
-
-}
-
-func CloseDB() {
-	fmt.Println("db is closed")
-
-	db.Close()
-}
 
 func GetContactByID (userId int) Contact {
 	var id string
@@ -102,7 +81,6 @@ func GetContactByID (userId int) Contact {
 	var address string
 
 	maxID := getMaxID()
-	fmt.Println(userId, maxID)
 
 	if userId <= maxID {
 		rows, err := getContactFromIDStmt.Query(userId)
@@ -172,6 +150,10 @@ func DeleteContact (p string) error{
 	var err error
 	id, _ := strconv.Atoi(p)
 	maxID := getMaxID()
+
+	contact:=GetContactByID(id)
+
+	fmt.Println("Deleting contact ", contact.Name)
 
 	if id<=maxID {
 		_, err = deleteContactStmt.Exec(id)

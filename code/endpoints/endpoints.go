@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"encoding/json"
-	"../contact"
+	"../repository"
 	"fmt"
 	"regexp"
 	"strings"
@@ -30,8 +30,7 @@ func GetContactProfile(w http.ResponseWriter, req *http.Request) {
 
 	fmt.Println(id)
 
-	contact := contact.GetContactByID(id)
-	fmt.Println("Endpoint: ",contact.Id, contact.Name)
+	contact := repository.GetContactByID(id)
 	if contact.Id==""{
 		sendErrorMessage(w, "There is no user with that ID")
 
@@ -43,8 +42,8 @@ func GetContactProfile(w http.ResponseWriter, req *http.Request) {
 }
 
 func GetAllContacts(w http.ResponseWriter, req *http.Request) {
-	var contacts []contact.Contact
-	contacts = contact.GetAllContacts()
+	var contacts []repository.Contact
+	contacts = repository.GetAllContacts()
 
 	for _,c := range contacts {
 		json.NewEncoder(w).Encode(c)
@@ -68,8 +67,10 @@ func CreateNewContact(w http.ResponseWriter, req *http.Request) {
 	//so we have to first strip all whitespace to correctly check the variable
 	tempname := strings.Join(strings.Fields(contactStruct.Name),"")
 
+	fmt.Println("Creating contact ", contactStruct.Name)
+
 	if IsLetter(tempname) {
-		contact.CreateContact(contactStruct.Name,contactStruct.PhoneNum,contactStruct.Address)
+		repository.CreateContact(contactStruct.Name,contactStruct.PhoneNum,contactStruct.Address)
 
 	} else {
 
@@ -97,8 +98,10 @@ func EditContact(w http.ResponseWriter, req *http.Request) {
 	var IsLetter = regexp.MustCompile(`^[a-zA-Z]+$`).MatchString
 	tempname := strings.Join(strings.Fields(contactStruct.Name),"")
 
+	fmt.Println("Updating contact ", contactStruct.Name)
+
 	if IsLetter(tempname) {
-		contact.UpdateContact(contactStruct.Id, contactStruct.Name, contactStruct.PhoneNum, contactStruct.Address)
+		repository.UpdateContact(contactStruct.Id, contactStruct.Name, contactStruct.PhoneNum, contactStruct.Address)
 	} else {
 
 		sendErrorMessage(w, "Name cannot contain number")
@@ -110,14 +113,11 @@ func DeleteContact(w http.ResponseWriter, req *http.Request) {
 
 	p := params["id"]
 
-	error := contact.DeleteContact(p)
+	error := repository.DeleteContact(p)
 
 	if error!=nil {
-
 		sendErrorMessage(w, "There is no user with that ID")
-
 	}
-
 }
 
 

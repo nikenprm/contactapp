@@ -9,14 +9,20 @@ import (
 
 	"./endpoints"
 	"./contact"
-//	"./config"
+	"./config"
 
+	"fmt"
+	"os"
 )
 
 func main() {
 
+
+	if err := config.LoadConfigFile("./config.json"); err != nil {
+		fmt.Printf("Error: %s loading configuration file: %s\n", "./config.json", err)
+		os.Exit(1)
+	}
 	contact.ConnectDB()
-//	config.SetMySQLDB()
 
 	router := mux.NewRouter()
 	router.HandleFunc("/contacts", endpoints.GetAllContacts).Methods("GET")

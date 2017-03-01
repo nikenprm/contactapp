@@ -5,23 +5,23 @@ import (
 	"fmt"
 	"strconv"
 	_ "github.com/lib/pq"
-//	"../config"
+	"../config"
 
 )
 
 type Contact struct {
-	Id string `json:"id"`
-	Name string `json:"name,"`
-	PhoneNum string `json:"phoneNum"`
-	Address string `json:"address"`
+	Id string `json:"id, omitempty"`
+	Name string `json:"name, omitempty"`
+	PhoneNum string `json:"phoneNum, omitempty"`
+	Address string `json:"address, omitempty"`
 }
 
 var db *sql.DB
 
 var (
 	getContactFromIDSQL = map[string]string{
-	"mysql":    "SELECT * FROM user WHERE id = ?",
-	"postgres": "SELECT * FROM contactinfo WHERE id= $1",
+		"mysql":    "SELECT * FROM user WHERE id = ?",
+		"postgres": "SELECT * FROM contactinfo WHERE id= $1",
 	}
 
 	createContactSQL = map[string]string{
@@ -44,8 +44,6 @@ var (
 		"postgres" : "SELECT MAX(id) FROM contactinfo",
 
 	}
-
-
 )
 
 var (
@@ -54,30 +52,26 @@ var (
 	createContactStmt 	 *sql.Stmt
 	updateContactStmt        *sql.Stmt
 	deleteContactStmt	 *sql.Stmt
-	getMaxIDStmt		 *sql.Stmt
 )
 
-const (
-	dbType = "postgres"
-)
 
 func PrepareStatements(err error) {
-	getContactFromIDStmt, err = db.Prepare(getContactFromIDSQL[dbType])
+	getContactFromIDStmt, err = db.Prepare(getContactFromIDSQL[config.Config.DB.Type])
 	if err != nil {
 		return
 	}
 
-	createContactStmt, err = db.Prepare(createContactSQL[dbType])
+	createContactStmt, err = db.Prepare(createContactSQL[config.Config.DB.Type])
 	if err != nil {
 		return
 	}
 
-	updateContactStmt, err = db.Prepare(updateContactSQL[dbType])
+	updateContactStmt, err = db.Prepare(updateContactSQL[config.Config.DB.Type])
 	if err != nil {
 		return
 	}
 
-	deleteContactStmt, err = db.Prepare(deleteContactSQL[dbType])
+	deleteContactStmt, err = db.Prepare(deleteContactSQL[config.Config.DB.Type])
 	if err != nil {
 		return
 	}
@@ -85,9 +79,11 @@ func PrepareStatements(err error) {
 
 func ConnectDB() {
 
+
 	var err error
+	url, err := config.Config.DB.ConnectionString()
 	//db, err = sql.Open("mysql", "root:123456@/contactDB")
-	db, err = sql.Open("postgres", "user=postgres dbname=contactappDB sslmode=disable")
+	db, err = sql.Open(config.Config.DB.Type, url)
 	err = db.Ping()
 	if err != nil {
 		panic(err)
@@ -98,6 +94,8 @@ func ConnectDB() {
 }
 
 func CloseDB() {
+
+	fmt.Println("db is closed")
 
 	db.Close()
 }
@@ -202,9 +200,8 @@ func checkErr(err error) {
 func getMaxID() int {
 	var maxID int
 
-	err := db.QueryRow(getMaxIDSQL[dbType]).Scan(&maxID)
+	err := db.QueryRow(getMaxIDSQL[config.Config.DB.Type]).Scan(&maxID)
 	checkErr(err)
 
 	return maxID
-
 }

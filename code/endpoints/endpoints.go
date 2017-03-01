@@ -31,7 +31,6 @@ func GetContactProfile(w http.ResponseWriter, req *http.Request) {
 		json.NewEncoder(w).Encode(contact)
 	}
 
-
 }
 
 func GetAllContacts(w http.ResponseWriter, req *http.Request) {
@@ -47,6 +46,8 @@ func CreateNewContact(w http.ResponseWriter, req *http.Request) {
 	name := req.PostFormValue("name")
 	phoneNum := req.PostFormValue("phoneNum")
 	address:= req.PostFormValue("address")
+
+	//decoder := json.NewDecoder(req.Body)
 
 	var IsLetter = regexp.MustCompile(`^[a-zA-Z]+$`).MatchString
 

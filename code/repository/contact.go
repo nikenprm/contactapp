@@ -80,18 +80,9 @@ func GetContactByID (userId int) Contact {
 	var phoneNum string
 	var address string
 
-	maxID := getMaxID()
-
-	if userId <= maxID {
-		rows, err := getContactFromIDStmt.Query(userId)
+	if isLessThanMaxID(userId) {
+		err := getContactFromIDStmt.QueryRow(userId).Scan(&id, &name, &phoneNum, &address)
 		checkErr(err)
-
-		defer rows.Close()
-
-		for rows.Next() {
-			err = rows.Scan(&id, &name, &phoneNum, &address)
-			checkErr(err)
-		}
 	}
 	contact := Contact{id, name, phoneNum, address}
 	return contact
@@ -110,7 +101,6 @@ func GetAllContacts () []Contact {
 		if contact.Id!= "" {
 			contacts = append(contacts, contact)
 		}
-
 	}
 	return contacts
 }
@@ -138,24 +128,19 @@ func UpdateContact (id, name, phoneNum, address string){
 		address = contact.Address
 	}
 
-	res, err := updateContactStmt.Exec(name,phoneNum,address,id)
+	_, err = updateContactStmt.Exec(name,phoneNum,address,id)
 	checkErr(err)
-
-	if res != nil {
-		fmt.Println("Success")
-	}
 }
 
 func DeleteContact (p string) error{
 	var err error
 	id, _ := strconv.Atoi(p)
-	maxID := getMaxID()
 
 	contact:=GetContactByID(id)
 
 	fmt.Println("Deleting contact ", contact.Name)
 
-	if id<=maxID {
+	if isLessThanMaxID(id){
 		_, err = deleteContactStmt.Exec(id)
 		checkErr(err)
 		return nil
@@ -177,4 +162,10 @@ func getMaxID() int {
 	checkErr(err)
 
 	return maxID
+}
+
+func isLessThanMaxID(userID int) bool{
+	maxID := getMaxID()
+
+	return userID<=maxID
 }

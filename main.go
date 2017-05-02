@@ -1,11 +1,9 @@
 package main
 
 import (
+	"github.com/buaazp/fasthttprouter"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/gorilla/mux"
-
-	"log"
-	"net/http"
+	"github.com/valyala/fasthttp"
 
 	"github.com/contactapp/config"
 	"github.com/contactapp/endpoints"
@@ -43,15 +41,14 @@ func executeServer() {
 	}
 
 	repository.ConnectDB()
-	router := mux.NewRouter()
-	router.HandleFunc("/contacts", endpoints.GetAllContacts).Methods("GET")
-	router.HandleFunc("/contacts/{id}", endpoints.GetContactProfile).Methods("GET")
-	router.HandleFunc("/contacts", endpoints.CreateNewContact).Methods("POST")
-	router.HandleFunc("/contacts/{id}", endpoints.EditContact).Methods("PUT")
-	router.HandleFunc("/contacts/{id}", endpoints.DeleteContact).Methods("DELETE")
-	log.Fatal(http.ListenAndServe(":12345", router))
+	router := fasthttprouter.New()
 
-	fmt.Println("HTTP is listening on port 12345")
+	router.GET("/contacts", endpoints.GetAllContacts)
+	router.GET("/contacts/:id", endpoints.GetContactProfile)
+	router.POST("/contacts", endpoints.CreateNewContact)
+	router.PUT("/contacts/:id", endpoints.EditContact)
+	router.DELETE("/contacts/:id", endpoints.DeleteContact)
+	fmt.Println(fasthttp.ListenAndServe(":12345", router.Handler))
 
 	defer repository.CloseDB()
 }

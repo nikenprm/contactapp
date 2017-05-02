@@ -7,13 +7,13 @@ import (
 	"log"
 	"net/http"
 
-	"./endpoints"
-	"./repository"
-	"./config"
+	"github.com/contactapp/config"
+	"github.com/contactapp/endpoints"
+	"github.com/contactapp/repository"
 
+	"flag"
 	"fmt"
 	"os"
-	"flag"
 )
 
 func main() {
@@ -21,7 +21,7 @@ func main() {
 
 	args := flag.Args()
 
-	if len(args)>0 {
+	if len(args) > 0 {
 		switch args[0] {
 		case "serve":
 			executeServer()
@@ -55,7 +55,3 @@ func executeServer() {
 
 	defer repository.CloseDB()
 }
-
-
-
-

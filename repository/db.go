@@ -3,7 +3,8 @@ package repository
 import (
 	"database/sql"
 	"fmt"
-	"../config"
+
+	"github.com/contactapp/config"
 )
 
 var db *sql.DB
@@ -27,4 +28,3 @@ func CloseDB() {
 
 	db.Close()
 }
-

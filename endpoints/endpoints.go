@@ -1,25 +1,23 @@
 package endpoints
 
 import (
-
 	"github.com/gorilla/mux"
 
-	"net/http"
-	"strconv"
 	"encoding/json"
-	"../repository"
 	"fmt"
+	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
+
+	"github.com/contactapp/repository"
 )
 
 type ContactCreationStruct struct {
-
-	Id string `json:"id"`
-	Name string `json:"name"`
+	Id       string `json:"id"`
+	Name     string `json:"name"`
 	PhoneNum string `json:"phoneNum"`
-	Address string `json:"address"`
-
+	Address  string `json:"address"`
 }
 
 func GetContactProfile(w http.ResponseWriter, req *http.Request) {
@@ -31,11 +29,10 @@ func GetContactProfile(w http.ResponseWriter, req *http.Request) {
 	fmt.Println(id)
 
 	contact := repository.GetContactByID(id)
-	if contact.Id==""{
+	if contact.Id == "" {
 		sendErrorMessage(w, "There is no user with that ID")
 
 	} else {
-
 		json.NewEncoder(w).Encode(contact)
 	}
 
@@ -45,7 +42,7 @@ func GetAllContacts(w http.ResponseWriter, req *http.Request) {
 	var contacts []repository.Contact
 	contacts = repository.GetAllContacts()
 
-	for _,c := range contacts {
+	for _, c := range contacts {
 		json.NewEncoder(w).Encode(c)
 	}
 }
@@ -65,16 +62,16 @@ func CreateNewContact(w http.ResponseWriter, req *http.Request) {
 
 	//the function above will assume that whitespace is not letter
 	//so we have to first strip all whitespace to correctly check the variable
-	tempname := strings.Join(strings.Fields(contactStruct.Name),"")
+	tempname := strings.Join(strings.Fields(contactStruct.Name), "")
 
 	fmt.Println("Creating contact ", contactStruct.Name)
 
 	if IsLetter(tempname) {
-		repository.CreateContact(contactStruct.Name,contactStruct.PhoneNum,contactStruct.Address)
+		repository.CreateContact(contactStruct.Name, contactStruct.PhoneNum, contactStruct.Address)
 
 	} else {
 
-		fmt.Println("name:",contactStruct.Name)
+		fmt.Println("name:", contactStruct.Name)
 		sendErrorMessage(w, "Name cannot contain number")
 	}
 }
@@ -87,7 +84,6 @@ func EditContact(w http.ResponseWriter, req *http.Request) {
 	var contactStruct ContactCreationStruct
 	contactStruct.Id = id
 
-
 	decoder := json.NewDecoder(req.Body)
 
 	if err := decoder.Decode(&contactStruct); err != nil {
@@ -96,7 +92,7 @@ func EditContact(w http.ResponseWriter, req *http.Request) {
 	}
 
 	var IsLetter = regexp.MustCompile(`^[a-zA-Z]+$`).MatchString
-	tempname := strings.Join(strings.Fields(contactStruct.Name),"")
+	tempname := strings.Join(strings.Fields(contactStruct.Name), "")
 
 	fmt.Println("Updating contact ", contactStruct.Name)
 
@@ -115,11 +111,10 @@ func DeleteContact(w http.ResponseWriter, req *http.Request) {
 
 	error := repository.DeleteContact(p)
 
-	if error!=nil {
+	if error != nil {
 		sendErrorMessage(w, "There is no user with that ID")
 	}
 }
-
 
 func sendErrorMessage(w http.ResponseWriter, message string) {
 	http.Error(w, message, http.StatusBadRequest)

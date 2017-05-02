@@ -1,1 +1,9 @@
 .idea
+code/
+.vscode
+
+# Configuration file
+config.json
+
+# Executable file
+contactapp

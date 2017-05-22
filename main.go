@@ -14,13 +14,22 @@ import (
 	"os"
 )
 
+var migrationPath = flag.String("m", "./migrations/postgres", "path to migration directory")
+
 func main() {
 	flag.Parse()
+
+	if err := config.LoadConfigFile("./config.json"); err != nil {
+		fmt.Printf("Error: %s loading configuration file: %s\n", "./config.json", err)
+		os.Exit(1)
+	}
 
 	args := flag.Args()
 
 	if len(args) > 0 {
 		switch args[0] {
+		case "migration":
+			executeMigration(args)
 		case "serve":
 			executeServer()
 		default:
@@ -35,11 +44,6 @@ func main() {
 }
 
 func executeServer() {
-	if err := config.LoadConfigFile("./config.json"); err != nil {
-		fmt.Printf("Error: %s loading configuration file: %s\n", "./config.json", err)
-		os.Exit(1)
-	}
-
 	repository.ConnectDB()
 	router := fasthttprouter.New()
 

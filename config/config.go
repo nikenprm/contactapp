@@ -1,9 +1,9 @@
 package config
 
 import (
-	"os"
 	"encoding/json"
 	"fmt"
+	"os"
 )
 
 type Configuration struct {
@@ -11,18 +11,15 @@ type Configuration struct {
 }
 
 type DBParams struct {
-
 	Type string `json:"type"`
 	Host string `json:"host"`
 	Port string `json:"port"`
 	User string `json:"user"`
 	Name string `json:"name"`
 	Pass string `json:"pass"`
-
 }
 
 var Config Configuration
-
 
 func LoadConfigFile(filePath string) (err error) {
 	var file *os.File
@@ -45,9 +42,14 @@ func (db *DBParams) ConnectionString() (string, error) {
 	} else {
 		return "", fmt.Errorf("Unknown database type")
 	}
-
 }
 
-
-
-
+func (db *DBParams) MigrationString() (string, error) {
+	if db.Type == "postgres" {
+		return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", db.User, db.Pass, db.Host, db.Port, db.Name), nil
+	} else if db.Type == "mysql" {
+		return fmt.Sprintf("mysql://%s:%s@tcp(%s:%s)/%s?parseTime=true", db.User, db.Pass, db.Host, db.Port, db.Name), nil
+	} else {
+		return "", fmt.Errorf("Unknown database type: %s", db.Type)
+	}
+}

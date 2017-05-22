@@ -18,27 +18,27 @@ type Contact struct {
 
 var (
 	getContactFromIDSQL = map[string]string{
-		"mysql":    "SELECT * FROM user WHERE id = ?",
-		"postgres": "SELECT * FROM contact_info WHERE id= $1",
+		"mysql":    "SELECT id, name, phoneNum, address FROM contact_info WHERE id = ? AND deleted_at IS NULL LIMIT 1",
+		"postgres": "SELECT id, name, phoneNum, address FROM contact_info WHERE id= $1 AND deleted_at IS NULL LIMIT 1",
 	}
 
 	createContactSQL = map[string]string{
-		"mysql":    "INSERT INTO user(name, phoneNum, address) VALUES(?,?,?)",
+		"mysql":    "INSERT INTO contact_info(name, phoneNum, address) VALUES(?,?,?)",
 		"postgres": "INSERT INTO contact_info(name, phoneNum, address) VALUES($1,$2,$3)",
 	}
 
 	updateContactSQL = map[string]string{
-		"mysql":    "UPDATE user SET name=?, phoneNum=?, address=? WHERE id=?",
-		"postgres": "UPDATE contact_info SET name=$1, phoneNum=$2, address=$3 WHERE id=$4",
+		"mysql":    "UPDATE contact_info SET name=?, phoneNum=?, address=? WHERE id=? AND deleted_at IS NULL LIMIT 1",
+		"postgres": "UPDATE contact_info SET name=$1, phoneNum=$2, address=$3 WHERE id=$4 AND deleted_at IS NULL LIMIT 1",
 	}
 
 	deleteContactSQL = map[string]string{
-		"mysql":    "DELETE FROM user WHERE id=?",
-		"postgres": "DELETE FROM contact_info WHERE id=$1",
+		"mysql":    "UPDATE contact_info set deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL",
+		"postgres": "UPDATE contact_info set deleted_at = CURRENT_TIMESTAMP WHERE id = $1 AND deleted_at IS NULL",
 	}
 
 	getMaxIDSQL = map[string]string{
-		"mysql":    "SELECT MAX(id) FROM user",
+		"mysql":    "SELECT MAX(id) FROM contact_info",
 		"postgres": "SELECT MAX(id) FROM contact_info",
 	}
 )

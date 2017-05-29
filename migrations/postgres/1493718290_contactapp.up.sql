@@ -9,3 +9,5 @@ CREATE TABLE IF NOT EXISTS contact_info (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP NULL DEFAULT NULL
 );
+
+CREATE INDEX contact_index ON contact_info(id, name);

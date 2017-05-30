@@ -49,6 +49,7 @@ func executeServer() {
 
 	router.GET("/contacts", endpoints.GetAllContacts)
 	router.GET("/contacts/:id", endpoints.GetContactProfile)
+	router.GET("/download", endpoints.DownloadContactProfile)
 	router.POST("/contacts", endpoints.CreateNewContact)
 	router.PUT("/contacts/:id", endpoints.EditContact)
 	router.DELETE("/contacts/:id", endpoints.DeleteContact)

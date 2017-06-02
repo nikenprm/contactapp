@@ -1,11 +1,9 @@
 package main
 
 import (
+	"github.com/buaazp/fasthttprouter"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/gorilla/mux"
-
-	"log"
-	"net/http"
+	"github.com/valyala/fasthttp"
 
 	"github.com/contactapp/config"
 	"github.com/contactapp/endpoints"
@@ -16,13 +14,22 @@ import (
 	"os"
 )
 
+var migrationPath = flag.String("m", "./migrations/postgres", "path to migration directory")
+
 func main() {
 	flag.Parse()
+
+	if err := config.LoadConfigFile("./config.json"); err != nil {
+		fmt.Printf("Error: %s loading configuration file: %s\n", "./config.json", err)
+		os.Exit(1)
+	}
 
 	args := flag.Args()
 
 	if len(args) > 0 {
 		switch args[0] {
+		case "migration":
+			executeMigration(args)
 		case "serve":
 			executeServer()
 		default:
@@ -37,21 +44,16 @@ func main() {
 }
 
 func executeServer() {
-	if err := config.LoadConfigFile("./config.json"); err != nil {
-		fmt.Printf("Error: %s loading configuration file: %s\n", "./config.json", err)
-		os.Exit(1)
-	}
-
 	repository.ConnectDB()
-	router := mux.NewRouter()
-	router.HandleFunc("/contacts", endpoints.GetAllContacts).Methods("GET")
-	router.HandleFunc("/contacts/{id}", endpoints.GetContactProfile).Methods("GET")
-	router.HandleFunc("/contacts", endpoints.CreateNewContact).Methods("POST")
-	router.HandleFunc("/contacts/{id}", endpoints.EditContact).Methods("PUT")
-	router.HandleFunc("/contacts/{id}", endpoints.DeleteContact).Methods("DELETE")
-	log.Fatal(http.ListenAndServe(":12345", router))
+	router := fasthttprouter.New()
 
-	fmt.Println("HTTP is listening on port 12345")
+	router.GET("/contacts", endpoints.GetAllContacts)
+	router.GET("/contacts/:id", endpoints.GetContactProfile)
+	router.GET("/download", endpoints.DownloadContactProfile)
+	router.POST("/contacts", endpoints.CreateNewContact)
+	router.PUT("/contacts/:id", endpoints.EditContact)
+	router.DELETE("/contacts/:id", endpoints.DeleteContact)
+	fmt.Println(fasthttp.ListenAndServe(":12345", router.Handler))
 
 	defer repository.CloseDB()
 }

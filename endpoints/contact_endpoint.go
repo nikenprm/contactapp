@@ -1,14 +1,16 @@
 package endpoints
 
 import (
-	"github.com/gorilla/mux"
+	"strconv"
+
+	"github.com/valyala/fasthttp"
 
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"regexp"
-	"strconv"
 	"strings"
+
+	"bytes"
 
 	"github.com/contactapp/repository"
 )
@@ -20,40 +22,37 @@ type ContactCreationStruct struct {
 	Address  string `json:"address"`
 }
 
-func GetContactProfile(w http.ResponseWriter, req *http.Request) {
-	params := mux.Vars(req)
-	p := params["id"]
+func GetContactProfile(ctx *fasthttp.RequestCtx) {
+	param, _ := ctx.UserValue("id").(string)
 
-	id, _ := strconv.Atoi(p)
-
+	id, _ := strconv.Atoi(param)
 	fmt.Println(id)
 
 	contact := repository.GetContactByID(id)
 	if contact.Id == "" {
-		sendErrorMessage(w, "There is no user with that ID")
-
+		sendErrorMessage(ctx, "There is no user with that ID")
 	} else {
-		json.NewEncoder(w).Encode(contact)
+		json.NewEncoder(ctx).Encode(contact)
 	}
-
 }
 
-func GetAllContacts(w http.ResponseWriter, req *http.Request) {
+func GetAllContacts(ctx *fasthttp.RequestCtx) {
 	var contacts []repository.Contact
 	contacts = repository.GetAllContacts()
 
 	for _, c := range contacts {
-		json.NewEncoder(w).Encode(c)
+		json.NewEncoder(ctx).Encode(c)
 	}
 }
 
-func CreateNewContact(w http.ResponseWriter, req *http.Request) {
+func CreateNewContact(ctx *fasthttp.RequestCtx) {
 	var contactStruct ContactCreationStruct
 
-	decoder := json.NewDecoder(req.Body)
+	body := bytes.NewReader(ctx.PostBody())
+	decoder := json.NewDecoder(body)
 
 	if err := decoder.Decode(&contactStruct); err != nil {
-		sendErrorMessage(w, "Error decoding the input")
+		sendErrorMessage(ctx, "Error decoding the input")
 		return
 	}
 
@@ -68,26 +67,23 @@ func CreateNewContact(w http.ResponseWriter, req *http.Request) {
 
 	if IsLetter(tempname) {
 		repository.CreateContact(contactStruct.Name, contactStruct.PhoneNum, contactStruct.Address)
-
 	} else {
-
 		fmt.Println("name:", contactStruct.Name)
-		sendErrorMessage(w, "Name cannot contain number")
+		sendErrorMessage(ctx, "Name cannot contain number")
 	}
 }
 
-func EditContact(w http.ResponseWriter, req *http.Request) {
-	params := mux.Vars(req)
-
-	id := params["id"]
+func EditContact(ctx *fasthttp.RequestCtx) {
+	id, _ := ctx.UserValue("id").(string)
 
 	var contactStruct ContactCreationStruct
 	contactStruct.Id = id
 
-	decoder := json.NewDecoder(req.Body)
+	body := bytes.NewReader(ctx.PostBody())
+	decoder := json.NewDecoder(body)
 
 	if err := decoder.Decode(&contactStruct); err != nil {
-		sendErrorMessage(w, "Error decoding the input")
+		sendErrorMessage(ctx, "Error decoding the input")
 		return
 	}
 
@@ -99,23 +95,20 @@ func EditContact(w http.ResponseWriter, req *http.Request) {
 	if IsLetter(tempname) {
 		repository.UpdateContact(contactStruct.Id, contactStruct.Name, contactStruct.PhoneNum, contactStruct.Address)
 	} else {
-
-		sendErrorMessage(w, "Name cannot contain number")
+		sendErrorMessage(ctx, "Name cannot contain number")
 	}
 }
 
-func DeleteContact(w http.ResponseWriter, req *http.Request) {
-	params := mux.Vars(req)
-
-	p := params["id"]
-
-	error := repository.DeleteContact(p)
+func DeleteContact(ctx *fasthttp.RequestCtx) {
+	id, _ := ctx.UserValue("id").(string)
+	error := repository.DeleteContact(id)
 
 	if error != nil {
-		sendErrorMessage(w, "There is no user with that ID")
+		sendErrorMessage(ctx, "Name cannot contain number")
 	}
 }
 
-func sendErrorMessage(w http.ResponseWriter, message string) {
-	http.Error(w, message, http.StatusBadRequest)
+func sendErrorMessage(ctx *fasthttp.RequestCtx, message string) {
+	ctx.SetBody([]byte(message))
+	ctx.SetStatusCode(fasthttp.StatusBadRequest)
 }

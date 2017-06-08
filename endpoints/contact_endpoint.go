@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
-	"strings"
 
 	"bytes"
 
@@ -57,18 +56,14 @@ func CreateNewContact(ctx *fasthttp.RequestCtx) {
 	}
 
 	//used to check whether a string contains number or not, because value of name cannot contain number
-	var IsLetter = regexp.MustCompile(`^[a-zA-Z]+$`).MatchString
-
-	//the function above will assume that whitespace is not letter
-	//so we have to first strip all whitespace to correctly check the variable
-	tempname := strings.Join(strings.Fields(contactStruct.Name), "")
+	var IsLetter = regexp.MustCompile(`^[a-zA-Z]+[\s[a-zA-Z]+]*$`).MatchString
 
 	fmt.Println("Creating contact ", contactStruct.Name)
 
-	if IsLetter(tempname) {
+	if IsLetter(contactStruct.Name) {
 		repository.CreateContact(contactStruct.Name, contactStruct.PhoneNum, contactStruct.Address)
 	} else {
-		fmt.Println("name:", contactStruct.Name)
+		fmt.Println("invalid name:", contactStruct.Name)
 		sendErrorMessage(ctx, "Name cannot contain number")
 	}
 }
@@ -82,17 +77,17 @@ func EditContact(ctx *fasthttp.RequestCtx) {
 	body := bytes.NewReader(ctx.PostBody())
 	decoder := json.NewDecoder(body)
 
+	//contactToUpdate := repository.GetContactByID(id)
+
 	if err := decoder.Decode(&contactStruct); err != nil {
 		sendErrorMessage(ctx, "Error decoding the input")
 		return
 	}
 
-	var IsLetter = regexp.MustCompile(`^[a-zA-Z]+$`).MatchString
-	tempname := strings.Join(strings.Fields(contactStruct.Name), "")
+	var IsLetter = regexp.MustCompile(`^\0|[a-zA-Z]+[\s[a-zA-Z]+]*$`).MatchString
+	fmt.Println("Updating contact ", contactStruct.Id)
 
-	fmt.Println("Updating contact ", contactStruct.Name)
-
-	if IsLetter(tempname) {
+	if IsLetter(contactStruct.Name) {
 		repository.UpdateContact(contactStruct.Id, contactStruct.Name, contactStruct.PhoneNum, contactStruct.Address)
 	} else {
 		sendErrorMessage(ctx, "Name cannot contain number")
@@ -104,7 +99,7 @@ func DeleteContact(ctx *fasthttp.RequestCtx) {
 	error := repository.DeleteContact(id)
 
 	if error != nil {
-		sendErrorMessage(ctx, "Name cannot contain number")
+		sendErrorMessage(ctx, "There is no user with that ID")
 	}
 }
 

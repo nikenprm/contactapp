@@ -28,13 +28,13 @@ var (
 	}
 
 	updateContactSQL = map[string]string{
-		"mysql":    "UPDATE contact_info SET name=?, phoneNum=?, address=? WHERE id=? AND deleted_at IS NULL LIMIT 1",
-		"postgres": "UPDATE contact_info SET name=$1, phoneNum=$2, address=$3 WHERE id=$4 AND deleted_at IS NULL LIMIT 1",
+		"mysql":    "UPDATE contact_info SET name = ?, phoneNum = ?, address = ?, updated_at = CURRENT_TIMESTAMP WHERE id=? AND deleted_at IS NULL",
+		"postgres": "UPDATE contact_info SET name = $1, phoneNum = $2, address = $3, updated_at = CURRENT_TIMESTAMP WHERE id= $4 AND deleted_at IS NULL",
 	}
 
 	deleteContactSQL = map[string]string{
-		"mysql":    "UPDATE contact_info set deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL",
-		"postgres": "UPDATE contact_info set deleted_at = CURRENT_TIMESTAMP WHERE id = $1 AND deleted_at IS NULL",
+		"mysql":    "UPDATE contact_info SET deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL",
+		"postgres": "UPDATE contact_info SET deleted_at = CURRENT_TIMESTAMP WHERE id = $1 AND deleted_at IS NULL",
 	}
 
 	getMaxIDSQL = map[string]string{
@@ -149,7 +149,7 @@ func DeleteContact(p string) error {
 
 func checkErr(err error) {
 	if err != nil {
-		fmt.Println("error!!!!", err)
+		fmt.Println("Error: ", err)
 	}
 }
 

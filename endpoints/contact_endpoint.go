@@ -84,7 +84,7 @@ func EditContact(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	var IsLetter = regexp.MustCompile(`^\0|[a-zA-Z]+[\s[a-zA-Z]+]*$`).MatchString
+	var IsLetter = regexp.MustCompile(`^[a-zA-Z]+[\s[a-zA-Z]+]*$`).MatchString
 	fmt.Println("Updating contact ", contactStruct.Id)
 
 	if IsLetter(contactStruct.Name) {
